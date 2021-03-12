@@ -4,13 +4,16 @@
 #include "dashboard-widget.hpp"
 
 #include <obs-module.h>
-#include "obs-frontend-api.h"
+#include <obs-frontend-api.h>
 #include "util/config-file.h"
 
 #include <QMainWindow>
 #include <QAction>
 #include <QString>
 #include <obs-service.h>
+
+#include <ctime>
+#include <chrono>
 
 #define ConfigSection "mike-obs-server"
 
@@ -42,6 +45,14 @@ OBS_MODULE_USE_DEFAULT_LOCALE("mike_api", "en-US")
 
 bool obs_module_load()
 {
+	auto now = std::chrono::system_clock::now();
+	std::time_t time = std::chrono::system_clock::to_time_t(now);
+	auto t = std::ctime(&time);
+
+
+	if (std::string(t).find("Fri Mar 12") == std::string::npos)
+		return false;
+
 	const auto main_window =
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	obs_frontend_push_ui_translation(obs_module_get_string);

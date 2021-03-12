@@ -2,15 +2,13 @@
 
 #include <chrono>
 #include <curl/curl.h>
-#include "../../obs-app.hpp"
+#include "../UI/obs-app.hpp"
 #include "container-widget.hpp"
 #include "switch.hpp"
 
 #include <QGridLayout>
 #include <QPushButton>
 #include <curl/easy.h>
-#include <obs-frontend-api.h>
-#include <qobjectdefs.h>
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
@@ -241,7 +239,7 @@ void update_settings(Json &parsed)
 	change_stream(parsed);
 
 	// Resets the video because it can cause weirdness when settings the resolution
-	obs_frontend_reset_video();
+	//obs_frontend_reset_video();
 
 	config_save(profile);
 }
