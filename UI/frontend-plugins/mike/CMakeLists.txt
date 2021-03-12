@@ -7,20 +7,6 @@ find_package(Libcurl REQUIRED)
 include_directories(${LIBCURL_INCLUDE_DIRS})
 add_definitions(${LIBCURL_DEFINITIONS})
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/deps/json11")
-#set(mike_SOURCES
-#mike - api.cpp
-#mike - login.cpp
-#edit - widget.cpp
-#obs - multi - rtmp.cpp
-#push - widget.h)
-
-#set(mike_HEADERS
-#mike - api.hpp
-#mike - login.hpp
-#edit - widget.h
-#obs - multi - rtmp.h
-#pch.h
-#push - widget.h)
 
 set(${PROJECT_NAME}_SOURCES
   ${CMAKE_SOURCE_DIR}/deps/json11/json11.cpp

@@ -11,7 +11,7 @@
 
 using namespace json11;
 
-struct ServerInfo{
+struct ServerInfo {
 	std::string server;
 	std::string key;
 	Switch *widget;
