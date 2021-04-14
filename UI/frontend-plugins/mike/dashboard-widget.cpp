@@ -23,6 +23,9 @@ void change_advanced(Json &parsed)
 		obs_data_t *data = obs_data_create_from_json_file_safe(
 			encoderJsonPath, "bak");
 
+		if (!data)
+			data = obs_data_create();
+
 		auto op = parsed["output"];
 
 		int bitrate = std::stoi(op["bitrate"].string_value());
@@ -212,7 +215,6 @@ void DashboardWidget::send_update(std::string url)
 // Updates all the settings that are stored in config in memory
 void update_settings(Json &parsed)
 {
-	blog(LOG_DEBUG, "TEST: %s", parsed.dump().c_str());
 	auto op = parsed["output"];
 
 	config_t *profile = obs_frontend_get_profile_config();
