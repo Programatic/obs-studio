@@ -11,6 +11,7 @@
 #include <QAction>
 #include <QString>
 #include <obs-service.h>
+#include "../UI/obs-app.hpp"
 
 #include <ctime>
 #include <chrono>
@@ -38,6 +39,39 @@ ContainerWidget::ContainerWidget(QWidget *parent) : QDockWidget(parent)
 	setWidget(current_widget);
 }
 
+void clear_service()
+{
+	char serviceJsonPath[512];
+	int ret = GetProfilePath(serviceJsonPath, sizeof(serviceJsonPath), "service.json");
+
+	if (ret <= 0)
+		return;
+
+	obs_data_t *wrapper = obs_data_create();
+	obs_data_t *settings = obs_data_create();
+
+	obs_data_set_string(settings, "key", "");
+	obs_data_set_string(settings, "server", "");
+	obs_data_set_bool(settings, "bwtest", false);
+	obs_data_set_bool(settings, "use_auth", false);
+
+	obs_data_set_string(wrapper, "type", "rtmp_custom");
+	obs_data_set_obj(wrapper, "settings", settings);
+
+	obs_data_save_json_safe(wrapper, serviceJsonPath, "tmp", "bak");
+
+	obs_data_release(wrapper);
+	obs_data_release(settings);
+}
+
+void cb(obs_frontend_event e, void *)
+{
+	if (e == OBS_FRONTEND_EVENT_EXIT)
+		clear_service();
+
+}
+
+
 // Register the plugin to OBS. This registers the dock to the frontened and puts it into the correct location
 OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Ford Smith");
@@ -45,13 +79,7 @@ OBS_MODULE_USE_DEFAULT_LOCALE("mike_api", "en-US")
 
 bool obs_module_load()
 {
-	auto now = std::chrono::system_clock::now();
-	std::time_t time = std::chrono::system_clock::to_time_t(now);
-	auto t = std::ctime(&time);
-
-
-	if (std::string(t).find("Fri Mar 12") == std::string::npos)
-		return false;
+	obs_frontend_add_event_callback(cb, nullptr);
 
 	const auto main_window =
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());

@@ -56,7 +56,7 @@ class Switch final : public SelectionControl {
 	Q_OBJECT
 
 	static constexpr auto CORNER_RADIUS = 8.0;
-	static constexpr auto THUMB_RADIUS = 14.5;
+	static constexpr auto THUMB_RADIUS = 10;
 	static constexpr auto SHADOW_ELEVATION = 2.0;
 
 public:

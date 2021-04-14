@@ -259,7 +259,7 @@ void Switch::paintEvent(QPaintEvent *)
 		p.setOpacity(1.0);
 		p.setPen(palette().color(QPalette::Active,
 					 QPalette::ButtonText));
-		p.setFont(font());
+		p.setFont(QFont("Arial", 12));
 		p.drawText(_textRect, Qt::AlignLeft | Qt::AlignVCenter, text());
 	} else {
 		p.setOpacity(style.trackDisabledOpacity);
@@ -299,7 +299,7 @@ void Switch::paintEvent(QPaintEvent *)
 		p.setOpacity(style.disabledTextOpacity);
 		p.setPen(palette().color(QPalette::Disabled,
 					 QPalette::ButtonText));
-		p.setFont(font());
+		p.setFont(QFont("Arial", 12));
 		p.drawText(_textRect, Qt::AlignLeft | Qt::AlignVCenter, text());
 	}
 }

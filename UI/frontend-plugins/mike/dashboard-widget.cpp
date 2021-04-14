@@ -8,6 +8,7 @@
 
 #include <QGridLayout>
 #include <QPushButton>
+#include <QGraphicsColorizeEffect>
 #include <curl/easy.h>
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
@@ -159,8 +160,9 @@ void DashboardWidget::send_update(std::string url)
 				 &curl_string_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
 		struct curl_slist *headers = NULL;
-		headers = curl_slist_append(headers,
-					    "Content-Type: application/json");
+		headers = curl_slist_append(
+			headers,
+			"Content-Type: application/x-www-form-urlencoded");
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
 		// User object
@@ -184,8 +186,12 @@ void DashboardWidget::send_update(std::string url)
 					    {"cpu", cpu_usage},
 					    {"servers", json_servers}};
 
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS,
-				 payload.dump().c_str());
+		std::string raw_payload = payload.dump();
+		const char *spayload = curl_easy_escape(curl, raw_payload.c_str(),
+						 raw_payload.size());
+		std::string data = ("data=" + std::string(spayload));
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+
 		curl_easy_perform(curl);
 
 		std::string err;
@@ -194,7 +200,7 @@ void DashboardWidget::send_update(std::string url)
 		// Verified that the information was sent/received
 		if (j["status"].string_value() != "ok" || !err.empty())
 			blog(LOG_ERROR,
-			     "Mike Plugin: Error in sending update to server: %s \n Error: %s \n Status: %s",
+			     "Mike Plugin: Error in sending update to server: %s \n Error: %s \n Response: %s",
 			     url.c_str(), err.c_str(), res.c_str());
 		else
 			blog(LOG_DEBUG, "Mike Plugin: Successfull update: %s",
@@ -206,6 +212,7 @@ void DashboardWidget::send_update(std::string url)
 // Updates all the settings that are stored in config in memory
 void update_settings(Json &parsed)
 {
+	blog(LOG_DEBUG, "TEST: %s", parsed.dump().c_str());
 	auto op = parsed["output"];
 
 	config_t *profile = obs_frontend_get_profile_config();
@@ -283,13 +290,27 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 			server["key"].string_value(), tswitch};
 
 		QLabel *label = new QLabel(name.c_str());
-		QFont f("Arial", 12);
+		QFont f("Arial", 10);
 		label->setFont(f);
 
 		// Create button modify. When clicked create a new dialog and grab the server information
 		// stored above. This so it can autofill the current values. When the dialog is accepted,
 		// update the server information and send an update to the server.
-		QPushButton *button = new QPushButton("Modify");
+		QPushButton *button = new QPushButton();
+
+		QGraphicsColorizeEffect *effect;
+
+		effect = new QGraphicsColorizeEffect(this);
+
+		effect->setColor(Qt::white);
+		effect->setStrength(1);
+
+		button->setStyleSheet(
+			"border-image:url(:settings/images/settings/general.svg);background-color: rgba(255, 255, 255, 0);");
+		button->setFixedWidth(15);
+		button->setFixedHeight(15);
+		button->setGraphicsEffect(effect);
+
 		connect(button, &QPushButton::clicked, [name, this]() {
 			ServerInfo &server_info =
 				server_information.at(name);
@@ -313,8 +334,8 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		});
 
 		gridLayout->addWidget(label, inc, 0);
-		gridLayout->addWidget(button, inc, 1);
-		gridLayout->addWidget(tswitch, inc, 2);
+		gridLayout->addWidget(tswitch, inc, 1);
+		gridLayout->addWidget(button, inc, 2);
 
 		inc++;
 	}
