@@ -253,6 +253,20 @@ void update_settings(Json &parsed)
 	config_save(profile);
 }
 
+void clear_scenes()
+{
+	struct obs_frontend_source_list scenes;
+	obs_frontend_get_scenes(&scenes);
+
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		obs_source_t *source = scenes.sources.array[i];
+
+		obs_source_remove(source);
+	}
+
+	obs_frontend_source_list_free(&scenes);
+}
+
 // When the dashboard is created (that is logged in), it will take the parsed items and do several things:
 // 1) It will add a label, button, and switch for each server on the widget to interact with.
 // 2) For each modify button, it will register a callback to open a dialog to update server/key information.
@@ -260,6 +274,8 @@ void update_settings(Json &parsed)
 // 4) It will start a timer that will send a heartbeat to the server every minute.
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
+	clear_scenes();
+
 	auto parsed_servers = parsed["servers"].array_items();
 
 	// CPU usage is collected over a continuous interval, so we need to store the
