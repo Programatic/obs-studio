@@ -255,7 +255,7 @@ void update_settings(Json &parsed)
 
 void clear_scenes()
 {
-	struct obs_frontend_source_list scenes;
+	struct obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
 
 	for (size_t i = 0; i < scenes.sources.num; i++) {
@@ -364,7 +364,8 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
-		send_update("https://mdca.co.com/api/obs_heartbeat");
+		if (obs_frontend_streaming_active())
+			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
 
 	timer->setInterval(1000 * 60);
