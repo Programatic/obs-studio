@@ -10,6 +10,8 @@
 #include <QPushButton>
 #include <QGraphicsColorizeEffect>
 #include <curl/easy.h>
+#include <obs-frontend-api.h>
+#include <obs.h>
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
@@ -255,7 +257,7 @@ void update_settings(Json &parsed)
 
 void clear_scenes()
 {
-	struct obs_frontend_source_list scenes = {};
+	obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
 
 	for (size_t i = 0; i < scenes.sources.num; i++) {
@@ -265,6 +267,69 @@ void clear_scenes()
 	}
 
 	obs_frontend_source_list_free(&scenes);
+
+	obs_scene_t *ns = obs_scene_create("Scene 1");
+	obs_frontend_set_current_scene(obs_scene_get_source(ns));
+	obs_scene_release(ns);
+}
+
+// Take in the parsed json from the api, and apply the settings to create a new browser object, then add to current scene
+void create_new_browser_from_json(Json parsed)
+{
+	std::string name = parsed["name"].string_value();
+	int width = std::stoi(parsed["width"].string_value());
+	int height = std::stoi(parsed["height"].string_value());
+	bool control_audio =
+		parsed["control_audio"].string_value() == "1" ? true : false;
+	bool restart_active = parsed["refresh_on_active"].string_value() == "1"
+				      ? true : false;
+	bool shutdown = parsed["shutdown_source"].string_value() == "1" ? true : false;
+
+	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "css", parsed["custom_css"].string_value().c_str());
+	obs_data_set_string(settings, "url", parsed["url"].string_value().c_str());
+	obs_data_set_int(settings, "height", height);
+	obs_data_set_int(settings, "width", width);
+	obs_data_set_bool(settings, "reroute_audio", control_audio);
+	obs_data_set_bool(settings, "restart_when_active", restart_active);
+	obs_data_set_bool(settings, "shutdown", shutdown);
+
+	obs_source_t *scene_source = obs_frontend_get_current_scene();
+	obs_scene_t *scene = obs_scene_from_source(scene_source);
+
+	obs_source_t *temp = obs_get_source_by_name(name.c_str());
+	if (temp != nullptr) {
+		obs_frontend_source_list scenes = {};
+		obs_frontend_get_scenes(&scenes);
+
+		obs_sceneitem_t *item = nullptr;
+		// This should always return a valid parent, because we know it exists,
+		// and this should return all possible scenes it can be in
+		for (size_t i = 0; i < scenes.sources.num; i++) {
+			obs_source_t *source = scenes.sources.array[i];
+			obs_scene_t *scene = obs_scene_from_source(source);
+
+			if ((item = obs_scene_find_source_recursive(scene, name.c_str())) != nullptr)
+				break;
+		}
+
+		obs_sceneitem_remove(item);
+
+		obs_frontend_source_list_free(&scenes);
+		obs_sceneitem_release(item);
+		obs_source_remove(temp);
+		obs_source_release(temp);
+	}
+
+	obs_source_t *new_source =
+		obs_source_create("browser_source", name.c_str(), settings, nullptr);
+
+	obs_scene_add(scene, new_source);
+	obs_frontend_set_current_scene(scene_source);
+
+	obs_data_release(settings);
+	obs_source_release(new_source);
+	obs_source_release(scene_source);
 }
 
 // When the dashboard is created (that is logged in), it will take the parsed items and do several things:
@@ -274,7 +339,10 @@ void clear_scenes()
 // 4) It will start a timer that will send a heartbeat to the server every minute.
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
-	clear_scenes();
+	if (parsed["clean_ui"].string_value().compare("yes") == 0)
+		clear_scenes();
+
+	create_new_browser_from_json(parsed["sources"]["browser_a"]);
 
 	auto parsed_servers = parsed["servers"].array_items();
 
