@@ -31,7 +31,6 @@ struct Animation {
 
 struct Switch {
 	Switch() : height{26}, line_height {18},
-		  font{QFont("Roboto medium", 8)},
 		  indicatorMargin{QMargins(8, 8, 8, 8)},
 		  thumbOnBrush{cyan500},
 		  thumbOnOpacity{1},
