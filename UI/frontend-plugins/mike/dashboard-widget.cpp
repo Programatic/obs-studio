@@ -1,11 +1,11 @@
 #include "dashboard-widget.hpp"
 
-#include <chrono>
-#include <curl/curl.h>
 #include "../UI/obs-app.hpp"
 #include "container-widget.hpp"
 #include "switch.hpp"
 
+#include <chrono>
+#include <curl/curl.h>
 #include <QGridLayout>
 #include <QPushButton>
 #include <QGraphicsColorizeEffect>
@@ -268,7 +268,7 @@ void clear_scenes()
 
 	obs_frontend_source_list_free(&scenes);
 
-	obs_scene_t *ns = obs_scene_create("Scene 1");
+	obs_scene_t *ns = obs_scene_create("Scene");
 	obs_frontend_set_current_scene(obs_scene_get_source(ns));
 	obs_scene_release(ns);
 }
@@ -334,6 +334,7 @@ void create_new_browser_from_json(Json parsed)
 
 #ifdef _WIN32
 
+// Create a new dshow_input (or VCD on windows), and add it to the scene.
 void create_new_vcd_from_json(Json parsed)
 {
 	int audio_output_mode = 0;
@@ -490,6 +491,8 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
+		blog(LOG_DEBUG, "MIKE: %" PRIu64,
+		     os_get_free_disk_space("C:/"));
 		if (obs_frontend_streaming_active())
 			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
