@@ -358,6 +358,9 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		inc++;
 	}
 
+	QSpacerItem *vs = new QSpacerItem(100, 100, QSizePolicy::Ignored, QSizePolicy::Ignored);
+	gridLayout->addItem(vs, inc, 0);
+
 	update_settings(parsed);
 
 	// Create timer that sends heartbeat every minute;
