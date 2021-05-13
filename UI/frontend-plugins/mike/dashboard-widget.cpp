@@ -12,6 +12,8 @@
 #include <curl/easy.h>
 #include <obs-frontend-api.h>
 #include <obs.h>
+#include <util/c99defs.h>
+#include <util/platform.h>
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
@@ -173,8 +175,23 @@ void DashboardWidget::send_update(std::string url)
 		// User object
 		Json user = Json::object{{"id", id}, {"name", name}};
 
-		// Cpu percentage
+		// Statistics. Lagged is frames missed from render lag,
+		// total_skipped is skipped from encoder lag
+		OBSOutput output = obs_frontend_get_streaming_output();
+		video_t *video = obs_get_video();
 		double cpu_usage = os_cpu_usage_info_query(cpu_info);
+		int lagged = obs_get_lagged_frames();
+		int total_skipped = video_output_get_skipped_frames(video);
+		int free_disk = os_get_free_disk_space("C:/") / 1024 / 1024 / 1024;
+		double render_time = (long double)obs_get_average_frame_time_ns() / 1000000.0l;;
+		int dropped = output ? obs_output_get_frames_dropped(output) : 0;
+
+		Json stats = Json::object{{"cpu", cpu_usage},
+								  {"avg_time_to_render", render_time},
+								  {"frame_missed", lagged},
+								  {"frame_skipped", total_skipped},
+								  {"drop_net_frame", dropped},
+								  {"disk_space_available", free_disk}};
 
 		// Iterate through our current saved information and serialize it
 		Json::array json_servers = Json::array{};
@@ -188,7 +205,7 @@ void DashboardWidget::send_update(std::string url)
 
 		// Put all the stored json objects together to serialize it
 		Json payload = Json::object{{"user", user},
-					    {"cpu", cpu_usage},
+					    {"stats", stats},
 					    {"servers", json_servers}};
 
 		std::string raw_payload = payload.dump();
@@ -386,6 +403,14 @@ void create_new_vcd_from_json(Json parsed)
 
 #endif
 
+#ifndef _WIN32
+
+void create_new_vcd_from_json(Json parsed) {
+	UNUSED_PARAMETER(parsed);
+}
+
+#endif
+
 // When the dashboard is created (that is logged in), it will take the parsed items and do several things:
 // 1) It will add a label, button, and switch for each server on the widget to interact with.
 // 2) For each modify button, it will register a callback to open a dialog to update server/key information.
@@ -491,8 +516,6 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
-		blog(LOG_DEBUG, "MIKE: %" PRIu64,
-		     os_get_free_disk_space("C:/"));
 		if (obs_frontend_streaming_active())
 			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
