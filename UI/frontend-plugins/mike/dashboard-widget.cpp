@@ -278,28 +278,22 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 	obs_source_t *scene_source = obs_frontend_get_current_scene();
 	obs_scene_t *scene = obs_scene_from_source(scene_source);
 
-	obs_source_t *temp = obs_get_source_by_name(name.c_str());
-	if (temp != nullptr) {
-		obs_frontend_source_list scenes = {};
-		obs_frontend_get_scenes(&scenes);
+	obs_frontend_source_list scenes = {};
+	obs_frontend_get_scenes(&scenes);
 
-		obs_sceneitem_t *item = nullptr;
-		// This should always return a valid parent, because we know it exists,
-		// and this should return all possible scenes it can be in
-		for (size_t i = 0; i < scenes.sources.num; i++) {
-			obs_source_t *source = scenes.sources.array[i];
-			obs_scene_t *scene = obs_scene_from_source(source);
+	obs_sceneitem_t *item = nullptr;
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		obs_source_t *source = scenes.sources.array[i];
+		obs_scene_t *scene = obs_scene_from_source(source);
 
-			if ((item = obs_scene_find_source_recursive(
-				     scene, name.c_str())) != nullptr)
-				break;
-		}
+		if ((item = obs_scene_find_source_recursive(
+			     scene, name.c_str())) != nullptr)
+			break;
+	}
 
+	if (item) {
 		obs_sceneitem_remove(item);
 		obs_sceneitem_release(item);
-		obs_source_remove(temp);
-		obs_source_release(temp);
-		obs_frontend_source_list_free(&scenes);
 	}
 
 	obs_source_t *new_source = obs_source_create(id, name.c_str(), settings, nullptr);
@@ -309,6 +303,7 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 
 	obs_source_release(new_source);
 	obs_source_release(scene_source);
+	obs_frontend_source_list_free(&scenes);
 }
 
 // Take in the parsed json from the api, and apply the settings to create a new browser object, then add to current scene
@@ -372,16 +367,16 @@ void create_new_vcd_from_json(Json parsed)
 
 	obs_data_t *settings = obs_data_create();
 
-	//obs_data_set_string(settings, "color_range", parsed["color_range"].string_value().c_str());
-	//obs_data_set_string(settings, "color_space", parsed["color_space"].string_value().c_str());
-	//obs_data_set_string(settings, "last_resolution",
-	//		    parsed["resolution"].string_value().c_str());
-	//obs_data_set_int(settings, "audio_output_mode", audio_output_mode);
-	//obs_data_set_int(settings, "buffering", buffering);
-	//obs_data_set_int(settings, "frame_interval", frame_interval);
-	//obs_data_set_int(settings, "res_type", res_type);
-	//obs_data_set_int(settings, "video_format", video_format);
-	//obs_data_set_bool(settings, "flip_vertically", flip_vertically);
+	obs_data_set_string(settings, "color_range", parsed["color_range"].string_value().c_str());
+	obs_data_set_string(settings, "color_space", parsed["color_space"].string_value().c_str());
+	obs_data_set_string(settings, "last_resolution",
+			    parsed["resolution"].string_value().c_str());
+	obs_data_set_int(settings, "audio_output_mode", audio_output_mode);
+	obs_data_set_int(settings, "buffering", buffering);
+	obs_data_set_int(settings, "frame_interval", frame_interval);
+	obs_data_set_int(settings, "res_type", res_type);
+	obs_data_set_int(settings, "video_format", video_format);
+	obs_data_set_bool(settings, "flip_vertically", flip_vertically);
 
 	create_unique_source(std::string("vcd"), "dshow_input", settings);
 
