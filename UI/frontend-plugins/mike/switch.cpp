@@ -207,7 +207,7 @@ QSize Switch::sizeHint() const
 		 style.indicatorMargin.right() +
 		 fontMetrics().horizontalAdvance(text());
 
-	return QSize(w, h);
+	return QSize(w, style.line_height);
 }
 
 void Switch::paintEvent(QPaintEvent *)
@@ -219,8 +219,9 @@ void Switch::paintEvent(QPaintEvent *)
 	const auto _indicatorRect = indicatorRect();
 	const auto _textRect = textRect();
 	auto trackMargin = style.indicatorMargin;
-	trackMargin.setTop(trackMargin.top() + 2);
-	trackMargin.setBottom(trackMargin.bottom() + 2);
+	// Modify these to translate switch up and down
+	trackMargin.setTop(trackMargin.top() - 4 );
+	trackMargin.setBottom(trackMargin.bottom() + 4 );
 	QRectF trackRect = _indicatorRect.marginsRemoved(trackMargin);
 
 	if (isEnabled()) {
