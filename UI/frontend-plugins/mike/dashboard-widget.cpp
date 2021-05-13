@@ -343,6 +343,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		clear_scenes();
 
 	create_new_browser_from_json(parsed["sources"]["browser_a"]);
+	create_new_browser_from_json(parsed["sources"]["browser_b"]);
 
 	auto parsed_servers = parsed["servers"].array_items();
 
