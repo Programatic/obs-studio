@@ -377,7 +377,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 			server["key"].string_value(), tswitch};
 
 		QLabel *label = new QLabel(name.c_str());
-		QFont f("Arial", 10);
+		QFont f("Sans Serif", 9);
 		label->setFont(f);
 
 		// Create button modify. When clicked create a new dialog and grab the server information
