@@ -13,7 +13,8 @@ set(${PROJECT_NAME}_SOURCES
   container-widget.cpp
   dashboard-widget.cpp
   switch.cpp
-  login-widget.cpp)
+  login-widget.cpp
+  screenshot.hpp)
 
 set(${PROJECT_NAME}_HEADERS
   ${CMAKE_SOURCE_DIR}/deps/json11/json11.hpp
@@ -21,7 +22,8 @@ set(${PROJECT_NAME}_HEADERS
   dashboard-widget.hpp
   switch.hpp
   style.hpp
-  login-widget.hpp)
+  login-widget.hpp
+  screenshot.hpp)
 
 add_library(${PROJECT_NAME} MODULE ${mike_SOURCES} ${mike_HEADERS})
 target_link_libraries(${PROJECT_NAME}
