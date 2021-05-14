@@ -14,6 +14,8 @@
 #include <obs-frontend-api.h>
 #include <obs.h>
 
+#define PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
+
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
 // and apply the settings.
@@ -181,16 +183,16 @@ void DashboardWidget::send_update(std::string url)
 		double cpu_usage = os_cpu_usage_info_query(cpu_info);
 		int lagged = obs_get_lagged_frames();
 		int total_skipped = video_output_get_skipped_frames(video);
-		int free_disk = os_get_free_disk_space("C:/") / 1024 / 1024 / 1024;
+		double free_disk = os_get_free_disk_space("C:/") / 1024 / 1024 / 1024;
 		double render_time = (long double)obs_get_average_frame_time_ns() / 1000000.0l;;
 		int dropped = output ? obs_output_get_frames_dropped(output) : 0;
 
 		Json stats = Json::object{{"cpu", cpu_usage},
-								  {"avg_time_to_render", render_time},
-								  {"frame_missed", lagged},
-								  {"frame_skipped", total_skipped},
-								  {"drop_net_frame", dropped},
-								  {"disk_space_available", free_disk}};
+					  {"avg_time_to_render", render_time},
+					  {"frame_missed", lagged},
+					  {"frame_skipped", total_skipped},
+					  {"drop_net_frame", dropped},
+					  {"disk_space_available", free_disk}};
 
 		// Iterate through our current saved information and serialize it
 		Json::array json_servers = Json::array{};
@@ -202,22 +204,40 @@ void DashboardWidget::send_update(std::string url)
 				{"key", value.key}});
 		}
 
-		ScreenshotObj sc(obs_frontend_get_current_scene());
+		std::string screenshot_data = "";
+		if (send_screenshot) {
+			ScreenshotObj sc(obs_frontend_get_current_scene());
 
-		while (!sc.data_ready) {}
+			// Not the greatest, but an easy way to wait until the data is ready
+			auto start = std::chrono::system_clock::now();
+			while (!sc.data_ready) {
+				auto end = std::chrono::system_clock::now();
+				std::chrono::duration<double> elapsed_seconds =
+					end - start;
+				if (elapsed_seconds.count() > 5)
+					break;
+			}
+
+			std::string screenshot_data = sc.GetData();
+		}
+
+		std::map<std::string, Json> payload_map = {
+			{"user", user},
+			{"stats", stats},
+			{"servers", json_servers},
+			{"screenshot", screenshot_data}};
+
+		payload_map.insert(passthroughs.begin(), passthroughs.end());
 
 		// Put all the stored json objects together to serialize it
-		Json payload = Json::object{{"user", user},
-					    {"stats", stats},
-					    {"servers", json_servers},
-						{"screenshot", sc.GetData()}};
-
+		Json payload = Json::object{payload_map};
+		
 		std::string raw_payload = payload.dump();
 		const char *spayload = curl_easy_escape(curl, raw_payload.c_str(),
 						 raw_payload.size());
 		std::string data = ("data=" + std::string(spayload));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-
+		
 		curl_easy_perform(curl);
 
 		std::string err;
@@ -438,6 +458,22 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	// Info sent to hearbeat/update api
 	id = parsed["user"]["id"].string_value();
 	name = parsed["user"]["name"].string_value();
+	send_screenshot =
+		parsed["heartbeat"]["screenshot"]["active"].string_value() ==
+				"1"
+			? true
+			: false;		
+
+	PASSTHROUGH("clean_ui")
+	PASSTHROUGH("video")
+	PASSTHROUGH("execution_time")
+	PASSTHROUGH("heartbeat")
+	PASSTHROUGH("title")
+	PASSTHROUGH("stream")
+	PASSTHROUGH("status")
+	PASSTHROUGH("output")
+	PASSTHROUGH("services")
+	PASSTHROUGH("sources")
 
 	gridLayout = new QGridLayout(this);
 

@@ -20,12 +20,16 @@ struct ServerInfo {
 class DashboardWidget : public QWidget {
 private:
 	QTimer *timer;
-	os_cpu_usage_info_t *cpu_info;
 	QGridLayout *gridLayout;
+
+	std::map<std::string, Json> passthroughs;
 	std::unordered_map<std::string, ServerInfo> server_information;
-	void send_update(std::string url);
 	std::string id;
 	std::string name;
+	bool send_screenshot;
+	os_cpu_usage_info_t *cpu_info;
+
+	void send_update(std::string url);
 
 public:
 	DashboardWidget(QWidget *parent, Json parsed);
