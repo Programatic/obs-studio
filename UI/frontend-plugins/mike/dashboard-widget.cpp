@@ -12,8 +12,6 @@
 #include <curl/easy.h>
 #include <obs-frontend-api.h>
 #include <obs.h>
-#include <util/c99defs.h>
-#include <util/platform.h>
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
