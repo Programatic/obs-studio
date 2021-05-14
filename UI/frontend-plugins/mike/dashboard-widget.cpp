@@ -3,6 +3,7 @@
 #include "../UI/obs-app.hpp"
 #include "container-widget.hpp"
 #include "switch.hpp"
+#include "screenshot.hpp"
 
 #include <chrono>
 #include <curl/curl.h>
@@ -201,10 +202,15 @@ void DashboardWidget::send_update(std::string url)
 				{"key", value.key}});
 		}
 
+		ScreenshotObj sc(obs_frontend_get_current_scene());
+
+		while (!sc.data_ready) {}
+
 		// Put all the stored json objects together to serialize it
 		Json payload = Json::object{{"user", user},
 					    {"stats", stats},
-					    {"servers", json_servers}};
+					    {"servers", json_servers},
+						{"screenshot", sc.GetData()}};
 
 		std::string raw_payload = payload.dump();
 		const char *spayload = curl_easy_escape(curl, raw_payload.c_str(),
