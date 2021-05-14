@@ -420,7 +420,7 @@ void create_new_vcd_from_json(Json parsed)
 	obs_data_set_int(settings, "video_format", video_format);
 	obs_data_set_bool(settings, "flip_vertically", flip_vertically);
 
-	create_unique_source(std::string("vcd"), "dshow_input", settings);
+	create_unique_source(parsed["name"].string_value(), "dshow_input", settings);
 
 	obs_data_release(settings);
 }
