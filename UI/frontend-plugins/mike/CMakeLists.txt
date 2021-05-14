@@ -14,7 +14,7 @@ set(${PROJECT_NAME}_SOURCES
   dashboard-widget.cpp
   switch.cpp
   login-widget.cpp
-  screenshot.hpp)
+  screenshot.cpp)
 
 set(${PROJECT_NAME}_HEADERS
   ${CMAKE_SOURCE_DIR}/deps/json11/json11.hpp
