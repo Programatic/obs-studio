@@ -105,10 +105,8 @@ std::string ScreenshotObj::GetData()
 
     QImageWriter writer(&buffer, "PNG");
     if (!writer.write(image)) {
-	    blog(LOG_DEBUG, "MIKE FAIL: %s", writer.errorString().toStdString().c_str());
+	    blog(LOG_DEBUG, "Fail to save screenshot: %s", writer.errorString().toStdString().c_str());
     }
-
-    //bool success = image.save(&buffer, "JPG");
 
     buffer.close();
 
