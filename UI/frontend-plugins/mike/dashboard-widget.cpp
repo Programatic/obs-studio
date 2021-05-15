@@ -14,6 +14,10 @@
 #include <obs-frontend-api.h>
 #include <obs.h>
 
+#include <fstream>
+#include <string>
+#include <iostream>
+
 #define PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
@@ -205,7 +209,7 @@ void DashboardWidget::send_update(std::string url)
 		}
 
 		std::string screenshot_data = "";
-		if (send_screenshot) {
+		if (send_screenshot || true) {
 			ScreenshotObj sc(obs_frontend_get_current_scene());
 
 			// Not the greatest, but an easy way to wait until the data is ready
@@ -218,7 +222,7 @@ void DashboardWidget::send_update(std::string url)
 					break;
 			}
 
-			std::string screenshot_data = sc.GetData();
+			screenshot_data = sc.GetData();
 		}
 
 		std::map<std::string, Json> payload_map = {
@@ -237,7 +241,9 @@ void DashboardWidget::send_update(std::string url)
 						 raw_payload.size());
 		std::string data = ("data=" + std::string(spayload));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-		
+		std::ofstream out("C:\\Users\\Ford Smith\\Desktop\\DELETE ME\\output.txt");
+		out << data;
+		out.close();
 		curl_easy_perform(curl);
 
 		std::string err;
@@ -556,11 +562,12 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
+		send_update("");
 		if (obs_frontend_streaming_active())
 			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
 
-	timer->setInterval(1000 * 60);
+	timer->setInterval(1000 * 1);
 	timer->start();
 
 	setMaximumHeight(parsed_servers.size() * 50);
