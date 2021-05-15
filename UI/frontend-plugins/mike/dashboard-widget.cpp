@@ -14,11 +14,7 @@
 #include <obs-frontend-api.h>
 #include <obs.h>
 
-#include <fstream>
-#include <string>
-#include <iostream>
-
-#define PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
+#define ADD_PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
 
 // Advanced settings are not stored in config like simple settings. This reads in the file where
 // advanced settings are saved and updates them. This triggers a listener in OBS which will reload
@@ -241,9 +237,6 @@ void DashboardWidget::send_update(std::string url)
 						 raw_payload.size());
 		std::string data = ("data=" + std::string(spayload));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-		std::ofstream out("C:\\Users\\Ford Smith\\Desktop\\DELETE ME\\output.txt");
-		out << data;
-		out.close();
 		curl_easy_perform(curl);
 
 		std::string err;
@@ -470,16 +463,16 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 			? true
 			: false;		
 
-	PASSTHROUGH("clean_ui")
-	PASSTHROUGH("video")
-	PASSTHROUGH("execution_time")
-	PASSTHROUGH("heartbeat")
-	PASSTHROUGH("title")
-	PASSTHROUGH("stream")
-	PASSTHROUGH("status")
-	PASSTHROUGH("output")
-	PASSTHROUGH("services")
-	PASSTHROUGH("sources")
+	ADD_PASSTHROUGH("clean_ui")
+	ADD_PASSTHROUGH("video")
+	ADD_PASSTHROUGH("execution_time")
+	ADD_PASSTHROUGH("heartbeat")
+	ADD_PASSTHROUGH("title")
+	ADD_PASSTHROUGH("stream")
+	ADD_PASSTHROUGH("status")
+	ADD_PASSTHROUGH("output")
+	ADD_PASSTHROUGH("services")
+	ADD_PASSTHROUGH("sources")
 
 	gridLayout = new QGridLayout(this);
 
@@ -562,12 +555,11 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
-		send_update("");
 		if (obs_frontend_streaming_active())
 			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
 
-	timer->setInterval(1000 * 1);
+	timer->setInterval(1000 * 60);
 	timer->start();
 
 	setMaximumHeight(parsed_servers.size() * 50);
