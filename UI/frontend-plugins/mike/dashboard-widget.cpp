@@ -153,15 +153,13 @@ signals:
 // Use the curl callback already defined in login
 extern int curl_string_callback(void *data, int size, int cnt, void *user);
 
-void test(std::string url);
 	// Take the current settings and serialize them in json. Then send them to server
 void DashboardWidget::send_update(std::string url) {
-	//std::thread test_thread(&DashboardWidget::test, this, url);
-	test(url);
-	//test_thread.detach();
+	std::thread test_thread(&DashboardWidget::async_send, this, url);
+	test_thread.detach();
 }
 
-void DashboardWidget::test(std::string url)
+void DashboardWidget::async_send(std::string url)
 {
 	CURL *curl;
 	curl = curl_easy_init();
@@ -187,7 +185,7 @@ void DashboardWidget::test(std::string url)
 		double cpu_usage = os_cpu_usage_info_query(cpu_info);
 		int lagged = obs_get_lagged_frames();
 		int total_skipped = video_output_get_skipped_frames(video);
-		double free_disk = os_get_free_disk_space("C:/") / 1024 / 1024 / 1024;
+		double free_disk = os_get_free_disk_space("C:/") / 1024. / 1024. / 1024.;
 		double render_time = (long double)obs_get_average_frame_time_ns() / 1000000.0l;;
 		int dropped = output ? obs_output_get_frames_dropped(output) : 0;
 
@@ -201,7 +199,6 @@ void DashboardWidget::test(std::string url)
 		// Iterate through our current saved information and serialize it
 		Json::array json_servers = Json::array{};
 		for (auto &[key, value] : server_information) {
-			blog(LOG_DEBUG, "UPDATE: %d", value.updated);
 			json_servers.emplace_back(Json::object{
 				{"name", key},
 				{"status", value.widget->isChecked()},
@@ -214,21 +211,21 @@ void DashboardWidget::test(std::string url)
 		}
 
 		std::string screenshot_data = "";
-		//if (send_screenshot || true) {
-		//	ScreenshotObj sc(obs_frontend_get_current_scene());
+		if (send_screenshot || true) {
+			ScreenshotObj sc(obs_frontend_get_current_scene());
 
-		//	// Not the greatest, but an easy way to wait until the data is ready
-		//	auto start = std::chrono::system_clock::now();
-		//	while (!sc.data_ready) {
-		//		auto end = std::chrono::system_clock::now();
-		//		std::chrono::duration<double> elapsed_seconds =
-		//			end - start;
-		//		if (elapsed_seconds.count() > 5)
-		//			break;
-		//	}
+			// Not the greatest, but an easy way to wait until the data is ready
+			auto start = std::chrono::system_clock::now();
+			while (!sc.data_ready) {
+				auto end = std::chrono::system_clock::now();
+				std::chrono::duration<double> elapsed_seconds =
+					end - start;
+				if (elapsed_seconds.count() > 5)
+					break;
+			}
 
-		//	screenshot_data = sc.GetData();
-		//}
+			screenshot_data = sc.GetData();
+		}
 
 		std::map<std::string, Json> payload_map = {
 			{"stats", stats},
@@ -296,7 +293,7 @@ void update_settings(Json &parsed)
 	change_advanced(parsed);
 	change_stream(parsed);
 
-	// Resets the video because it can cause weirdness when settings the resolution
+	// Resets the video because it can cause weirdness when setting the resolution
 	//obs_frontend_reset_video();
 
 	config_save(profile);

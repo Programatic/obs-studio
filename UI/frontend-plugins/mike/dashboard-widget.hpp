@@ -32,7 +32,7 @@ private:
 	os_cpu_usage_info_t *cpu_info;
 
 	void send_update(std::string url);
-	void test(std::string url);
+	void async_send(std::string url);
 
 public:
 	DashboardWidget(QWidget *parent, Json parsed);
