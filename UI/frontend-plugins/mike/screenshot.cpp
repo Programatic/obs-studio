@@ -103,10 +103,14 @@ std::string ScreenshotObj::GetData()
     QBuffer buffer(&ba);
     buffer.open(QIODevice::WriteOnly);
 
-    QImageWriter writer(&buffer, "PNG");
+    QImageWriter writer(&buffer, "JPG");
     if (!writer.write(image)) {
 	    blog(LOG_DEBUG, "Fail to save screenshot: %s", writer.errorString().toStdString().c_str());
     }
+
+    //for (QByteArray a : QImageWriter::supportedImageFormats()) {
+	   // blog(LOG_DEBUG, "MIKE: %s", a.toStdString().c_str());
+    //}
 
     buffer.close();
 

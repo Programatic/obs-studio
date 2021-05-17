@@ -14,6 +14,8 @@ using namespace json11;
 struct ServerInfo {
 	std::string server;
 	std::string key;
+	std::string id;
+	bool updated;
 	Switch *widget;
 };
 
@@ -30,6 +32,7 @@ private:
 	os_cpu_usage_info_t *cpu_info;
 
 	void send_update(std::string url);
+	void test(std::string url);
 
 public:
 	DashboardWidget(QWidget *parent, Json parsed);

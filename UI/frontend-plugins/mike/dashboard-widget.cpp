@@ -153,8 +153,15 @@ signals:
 // Use the curl callback already defined in login
 extern int curl_string_callback(void *data, int size, int cnt, void *user);
 
-// Take the current settings and serialize them in json. Then send them to server
-void DashboardWidget::send_update(std::string url)
+void test(std::string url);
+	// Take the current settings and serialize them in json. Then send them to server
+void DashboardWidget::send_update(std::string url) {
+	//std::thread test_thread(&DashboardWidget::test, this, url);
+	test(url);
+	//test_thread.detach();
+}
+
+void DashboardWidget::test(std::string url)
 {
 	CURL *curl;
 	curl = curl_easy_init();
@@ -172,9 +179,6 @@ void DashboardWidget::send_update(std::string url)
 			headers,
 			"Content-Type: application/x-www-form-urlencoded");
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-		// User object
-		Json user = Json::object{{"id", id}, {"name", name}};
 
 		// Statistics. Lagged is frames missed from render lag,
 		// total_skipped is skipped from encoder lag
@@ -196,33 +200,37 @@ void DashboardWidget::send_update(std::string url)
 
 		// Iterate through our current saved information and serialize it
 		Json::array json_servers = Json::array{};
-		for (const auto &[key, value] : server_information) {
+		for (auto &[key, value] : server_information) {
+			blog(LOG_DEBUG, "UPDATE: %d", value.updated);
 			json_servers.emplace_back(Json::object{
 				{"name", key},
 				{"status", value.widget->isChecked()},
 				{"url", value.server},
-				{"key", value.key}});
+				{"key", value.key},
+				{"id", value.id},
+				{"updated", value.updated}});
+
+			value.updated = false;
 		}
 
 		std::string screenshot_data = "";
-		if (send_screenshot || true) {
-			ScreenshotObj sc(obs_frontend_get_current_scene());
+		//if (send_screenshot || true) {
+		//	ScreenshotObj sc(obs_frontend_get_current_scene());
 
-			// Not the greatest, but an easy way to wait until the data is ready
-			auto start = std::chrono::system_clock::now();
-			while (!sc.data_ready) {
-				auto end = std::chrono::system_clock::now();
-				std::chrono::duration<double> elapsed_seconds =
-					end - start;
-				if (elapsed_seconds.count() > 5)
-					break;
-			}
+		//	// Not the greatest, but an easy way to wait until the data is ready
+		//	auto start = std::chrono::system_clock::now();
+		//	while (!sc.data_ready) {
+		//		auto end = std::chrono::system_clock::now();
+		//		std::chrono::duration<double> elapsed_seconds =
+		//			end - start;
+		//		if (elapsed_seconds.count() > 5)
+		//			break;
+		//	}
 
-			screenshot_data = sc.GetData();
-		}
+		//	screenshot_data = sc.GetData();
+		//}
 
 		std::map<std::string, Json> payload_map = {
-			{"user", user},
 			{"stats", stats},
 			{"servers", json_servers},
 			{"screenshot", screenshot_data}};
@@ -238,12 +246,11 @@ void DashboardWidget::send_update(std::string url)
 		std::string data = ("data=" + std::string(spayload));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
 		curl_easy_perform(curl);
-
 		std::string err;
 		Json j = Json::parse(res, err);
 
-		// Verified that the information was sent/received
-		if (j["status"].string_value() != "ok" || !err.empty())
+		// Verified that the information was sent/received. Apparently has changed
+		if (!err.empty())
 			blog(LOG_ERROR,
 			     "Mike Plugin: Error in sending update to server: %s \n Error: %s \n Response: %s",
 			     url.c_str(), err.c_str(), res.c_str());
@@ -295,7 +302,7 @@ void update_settings(Json &parsed)
 	config_save(profile);
 }
 
-void clear_scenes()
+void clear_scenes(std::string default_name)
 {
 	obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
@@ -308,12 +315,12 @@ void clear_scenes()
 
 	obs_frontend_source_list_free(&scenes);
 
-	obs_scene_t *ns = obs_scene_create("Scene");
+	obs_scene_t *ns = obs_scene_create(default_name.c_str());
 	obs_frontend_set_current_scene(obs_scene_get_source(ns));
 	obs_scene_release(ns);
 }
 
-void create_unique_source(std::string name, const char *id, obs_data_t *settings)
+void create_unique_source(std::string name, const char *id, obs_data_t *settings, bool visible)
 {
 	obs_source_t *scene_source = obs_frontend_get_current_scene();
 	obs_scene_t *scene = obs_scene_from_source(scene_source);
@@ -338,7 +345,8 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 
 	obs_source_t *new_source = obs_source_create(id, name.c_str(), settings, nullptr);
 
-	obs_scene_add(scene, new_source);
+	obs_sceneitem_t *nitem = obs_scene_add(scene, new_source);
+	obs_sceneitem_set_visible(nitem, visible);
 	obs_frontend_set_current_scene(scene_source);
 
 	obs_source_release(new_source);
@@ -352,6 +360,7 @@ void create_new_browser_from_json(Json parsed)
 	std::string name = parsed["name"].string_value();
 	int width = std::stoi(parsed["width"].string_value());
 	int height = std::stoi(parsed["height"].string_value());
+	bool visible = parsed["visible"].string_value() == "true" ? true : false;
 	bool control_audio =
 		parsed["control_audio"].string_value() == "1" ? true : false;
 	bool restart_active = parsed["refresh_on_active"].string_value() == "1"
@@ -367,7 +376,7 @@ void create_new_browser_from_json(Json parsed)
 	obs_data_set_bool(settings, "restart_when_active", restart_active);
 	obs_data_set_bool(settings, "shutdown", shutdown);
 
-	create_unique_source(name, "browser_source", settings);
+	create_unique_source(name, "browser_source", settings, visible);
 
 	obs_data_release(settings);
 }
@@ -379,6 +388,7 @@ void create_new_vcd_from_json(Json parsed)
 {
 	int audio_output_mode = 0;
 	int buffering = 0;
+	bool visible = parsed["visible"].string_value() == "true" ? true : false;
 	bool flip_vertically = parsed["flip"].string_value() == "1" ? true : false;
 	int frame_interval = -1;
 	int res_type = parsed["resolution_type"].string_value() == "custom" ? 1 : 0;
@@ -419,7 +429,7 @@ void create_new_vcd_from_json(Json parsed)
 	obs_data_set_int(settings, "video_format", video_format);
 	obs_data_set_bool(settings, "flip_vertically", flip_vertically);
 
-	create_unique_source(parsed["name"].string_value(), "dshow_input", settings);
+	create_unique_source(parsed["name"].string_value(), "dshow_input", settings, visible);
 
 	obs_data_release(settings);
 }
@@ -442,11 +452,12 @@ void create_new_vcd_from_json(Json parsed) {
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
 	if (parsed["clean_ui"].string_value().compare("yes") == 0)
-		clear_scenes();
+		clear_scenes(parsed["scene"]["name"].string_value());
 
-	create_new_browser_from_json(parsed["sources"]["browser_a"]);
-	create_new_browser_from_json(parsed["sources"]["browser_b"]);
 	create_new_vcd_from_json(parsed["sources"]["vcd"]);
+	create_new_browser_from_json(parsed["sources"]["browser_b"]);
+	create_new_browser_from_json(parsed["sources"]["browser_a"]);
+	
 
 	auto parsed_servers = parsed["servers"].array_items();
 
@@ -454,14 +465,9 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	// cpu info struct otherwise it will always return 0 when created/destroyed just to poll
 	cpu_info = os_cpu_usage_info_start();
 
-	// Info sent to hearbeat/update api
-	id = parsed["user"]["id"].string_value();
-	name = parsed["user"]["name"].string_value();
 	send_screenshot =
 		parsed["heartbeat"]["screenshot"]["active"].string_value() ==
-				"1"
-			? true
-			: false;		
+				"1" ? true : false;		
 
 	ADD_PASSTHROUGH("clean_ui")
 	ADD_PASSTHROUGH("video")
@@ -473,6 +479,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	ADD_PASSTHROUGH("output")
 	ADD_PASSTHROUGH("services")
 	ADD_PASSTHROUGH("sources")
+	ADD_PASSTHROUGH("user")
 
 	gridLayout = new QGridLayout(this);
 
@@ -485,15 +492,18 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		tswitch->setChecked(server["status"] == "on");
 
 		// If any of the flips are switched, instantly send an update to the sever
-		connect(tswitch, &SelectionControl::stateChanged, [&]() {
-			send_update(
-				"https://mdca.co.com/api/obs_server_update");
+		connect(tswitch, &SelectionControl::stateChanged, [name, this]() {
+			server_information[name].updated = true;
+			send_update("https://mdca.co.com/api/obs_server_update");
 		});
 
 		// Keep track of the information so we can update it later with modify
 		server_information[name] = ServerInfo{
 			server["url"].string_value(),
-			server["key"].string_value(), tswitch};
+			server["key"].string_value(),
+			server["id"].string_value(),
+			false,
+			tswitch};
 
 		QLabel *label = new QLabel(name.c_str());
 		QFont f("Sans Serif", 9);
@@ -529,11 +539,10 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 				[name, this](std::string server_url,
 					     std::string key) {
 					// Update information in our records
-					server_information[name].server =
-						server_url;
+					server_information[name].server = server_url;
 					server_information[name].key = key;
-					send_update(
-						"https://mdca.co.com/api/obs_server_update");
+					server_information[name].updated = true;
+					send_update("https://mdca.co.com/api/obs_server_update");
 				});
 
 			dialog->show();
@@ -555,6 +564,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	timer = new QTimer;
 
 	connect(timer, &QTimer::timeout, [this]() {
+		//send_update("");
 		if (obs_frontend_streaming_active())
 			send_update("https://mdca.co.com/api/obs_heartbeat");
 	});
