@@ -448,8 +448,18 @@ void create_new_vcd_from_json(Json parsed) {
 // 4) It will start a timer that will send a heartbeat to the server every minute.
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
+	std::string scene_name = parsed["scene"]["name"].string_value();
 	if (parsed["clean_ui"].string_value().compare("yes") == 0)
-		clear_scenes(parsed["scene"]["name"].string_value());
+		clear_scenes(scene_name);
+
+	// Creates default scene if it does not exist.
+	obs_source_t *default_scene = obs_get_source_by_name(scene_name.c_str());
+	if (!default_scene) {
+		obs_scene_t *ns = obs_scene_create(scene_name.c_str());
+		obs_frontend_set_current_scene(obs_scene_get_source(ns));
+		obs_scene_release(ns);
+	}
+	obs_source_release(default_scene);
 
 	create_new_vcd_from_json(parsed["sources"]["vcd"]);
 	create_new_browser_from_json(parsed["sources"]["browser_b"]);
@@ -462,8 +472,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	// cpu info struct otherwise it will always return 0 when created/destroyed just to poll
 	cpu_info = os_cpu_usage_info_start();
 
-	send_screenshot =
-		parsed["heartbeat"]["screenshot"]["active"].string_value() ==
+	send_screenshot = parsed["heartbeat"]["screenshot"]["active"].string_value() ==
 				"1" ? true : false;		
 
 	ADD_PASSTHROUGH("clean_ui")
@@ -477,6 +486,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	ADD_PASSTHROUGH("services")
 	ADD_PASSTHROUGH("sources")
 	ADD_PASSTHROUGH("user")
+	ADD_PASSTHROUGH("scene")
 
 	gridLayout = new QGridLayout(this);
 
