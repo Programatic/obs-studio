@@ -155,8 +155,8 @@ extern int curl_string_callback(void *data, int size, int cnt, void *user);
 
 	// Take the current settings and serialize them in json. Then send them to server
 void DashboardWidget::send_update(std::string url) {
-	std::thread test_thread(&DashboardWidget::async_send, this, url);
-	test_thread.detach();
+	std::thread thread(&DashboardWidget::async_send, this, url);
+	thread.detach();
 }
 
 void DashboardWidget::async_send(std::string url)
