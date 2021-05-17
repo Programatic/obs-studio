@@ -10,9 +10,8 @@ static void ScreenshotTick(void *param, float);
 ScreenshotObj::ScreenshotObj(obs_source_t *source)
     : weakSource(OBSGetWeakRef(source))
 {
-    // Forces the loading of qjpeg.dll
-    QCoreApplication app();
     obs_add_tick_callback(ScreenshotTick, this);
+    obs_source_release(source);
 }
 
 ScreenshotObj::~ScreenshotObj()
