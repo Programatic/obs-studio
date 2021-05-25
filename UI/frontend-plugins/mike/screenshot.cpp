@@ -1,7 +1,9 @@
 #include "screenshot.hpp"
 
+#include <jpeglib.h>
 #include <QBuffer>
 #include <QImageWriter>
+#include <util/base.h>
 
 static void ScreenshotTick(void *param, float);
 
@@ -81,37 +83,48 @@ void ScreenshotObj::Copy()
     uint8_t *videoData = nullptr;
     uint32_t videoLinesize = 0;
 
-    image = QImage(cx, cy, QImage::Format::Format_RGBX8888);
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+
+    JSAMPROW row_pointer[1];
+    int row_stride;
+
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+
+    jpeg_mem_dest(&cinfo, &mem, &mem_size);
+
+    cinfo.image_width = cx;
+    cinfo.image_height = cy;
+    cinfo.input_components = 4;
+    cinfo.in_color_space = JCS_EXT_RGBX;
+    jpeg_set_defaults(&cinfo);
+    jpeg_set_quality(&cinfo, 80, TRUE);
+
+    jpeg_start_compress(&cinfo, TRUE);
+    row_stride = cx * 4;
 
     if (gs_stagesurface_map(stagesurf, &videoData, &videoLinesize)) {
-        int linesize = image.bytesPerLine();
-        for (int y = 0; y < (int)cy; y++)
-            memcpy(image.scanLine(y),
-                   videoData + (y * videoLinesize), linesize);
+        while (cinfo.next_scanline < cinfo.image_height) {
+            row_pointer[0] = (videoData + (cinfo.next_scanline * row_stride));
+
+            jpeg_write_scanlines(&cinfo, row_pointer, 1);
+        }
 
         gs_stagesurface_unmap(stagesurf);
     }
 
     data_ready = true;
+
+    jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
+
 }
 
 std::string ScreenshotObj::GetData()
 {
-    QByteArray ba;
-    ba.reserve(image.sizeInBytes());
-    QBuffer buffer(&ba);
-    buffer.open(QIODevice::WriteOnly);
-
-    QImageWriter writer(&buffer, "JPG");
-    if (!writer.write(image)) {
-	    blog(LOG_DEBUG, "Fail to save screenshot: %s", writer.errorString().toStdString().c_str());
-    }
-
-    //for (QByteArray a : QImageWriter::supportedImageFormats()) {
-	   // blog(LOG_DEBUG, "MIKE: %s", a.toStdString().c_str());
-    //}
-
-    buffer.close();
+    blog(LOG_DEBUG, "mem_size: %ld", mem_size);
+    QByteArray ba(reinterpret_cast<char *>(mem), mem_size);
 
     QString b = ba.toBase64(QByteArray::Base64Encoding);
     std::string buff = b.toStdString();
