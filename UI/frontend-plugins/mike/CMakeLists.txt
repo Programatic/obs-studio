@@ -8,6 +8,8 @@ include_directories(${LIBCURL_INCLUDE_DIRS})
 add_definitions(${LIBCURL_DEFINITIONS})
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/deps/json11")
 
+add_subdirectory(libjpeg)
+
 set(${PROJECT_NAME}_SOURCES
   ${CMAKE_SOURCE_DIR}/deps/json11/json11.cpp
   container-widget.cpp
