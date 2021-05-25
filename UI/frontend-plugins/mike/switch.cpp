@@ -220,8 +220,8 @@ void Switch::paintEvent(QPaintEvent *)
 	const auto _textRect = textRect();
 	auto trackMargin = style.indicatorMargin;
 	// Modify these to translate switch up and down
-	trackMargin.setTop(trackMargin.top() - 4 );
-	trackMargin.setBottom(trackMargin.bottom() + 4 );
+	trackMargin.setTop(trackMargin.top() - 4);
+	trackMargin.setBottom(trackMargin.bottom() + 4);
 	QRectF trackRect = _indicatorRect.marginsRemoved(trackMargin);
 
 	if (isEnabled()) {
