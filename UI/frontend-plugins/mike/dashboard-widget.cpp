@@ -131,8 +131,8 @@ public:
 		// If the accept but is pressed, emit an event (which will save the updated values)
 		// and close the dialog and lastly free resources.
 		connect(ok_button, &QPushButton::clicked, [this]() {
-			emit accepted(server->text().toStdString(),
-				      key->text().toStdString());
+			emit accepted(server->text().trimmed().toStdString(),
+				      key->text().trimmed().toStdString());
 			close();
 			deleteLater();
 		});
