@@ -35,7 +35,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(WIN32)
-
+    target_link_libraries(${PROJECT_NAME} jpeg-static)
     if(MSVC)
         # Enable Multicore Builds and disable FH4 (to not depend on VCRUNTIME140_1.DLL)
 	    add_definitions(/MP /d2FH4-)
