@@ -1,6 +1,6 @@
 #include "screenshot.hpp"
 
-#include "libjpeg/jpeglib.h"
+#include "libjpeg-turbo/jpeglib.h"
 #include <QBuffer>
 #include <QImageWriter>
 #include <util/base.h>
@@ -123,7 +123,6 @@ void ScreenshotObj::Copy()
 
 std::string ScreenshotObj::GetData()
 {
-    blog(LOG_DEBUG, "mem_size: %ld", mem_size);
     QByteArray ba(reinterpret_cast<char *>(mem), mem_size);
 
     QString b = ba.toBase64(QByteArray::Base64Encoding);

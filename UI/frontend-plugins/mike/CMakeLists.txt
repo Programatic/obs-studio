@@ -8,7 +8,7 @@ include_directories(${LIBCURL_INCLUDE_DIRS})
 add_definitions(${LIBCURL_DEFINITIONS})
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/deps/json11")
 
-add_subdirectory(libjpeg)
+add_subdirectory(libjpeg-turbo)
 
 set(${PROJECT_NAME}_SOURCES
   ${CMAKE_SOURCE_DIR}/deps/json11/json11.cpp
@@ -32,6 +32,7 @@ target_link_libraries(${PROJECT_NAME}
   obs-frontend-api
   Qt5::Widgets
   ${LIBCURL_LIBRARIES}
+  jpeg-static
 )
 
 if(WIN32)
