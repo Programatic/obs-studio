@@ -83,50 +83,50 @@ void ScreenshotObj::Copy()
     uint8_t *videoData = nullptr;
     uint32_t videoLinesize = 0;
 
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-
-    JSAMPROW row_pointer[1];
-    int row_stride;
-
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_compress(&cinfo);
-
-    jpeg_mem_dest(&cinfo, &mem, &mem_size);
-
-    cinfo.image_width = cx;
-    cinfo.image_height = cy;
-    cinfo.input_components = 4;
-    cinfo.in_color_space = JCS_EXT_RGBX;
-    jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, 80, TRUE);
-
-    jpeg_start_compress(&cinfo, TRUE);
-    row_stride = cx * 4;
-
     if (gs_stagesurface_map(stagesurf, &videoData, &videoLinesize)) {
+	struct jpeg_compress_struct cinfo;
+	struct jpeg_error_mgr jerr;
+
+	JSAMPROW row_pointer[1];
+
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_compress(&cinfo);
+
+	jpeg_mem_dest(&cinfo, &mem, &mem_size);
+
+	cinfo.image_width = cx;
+	cinfo.image_height = cy;
+	cinfo.input_components = 4;
+	cinfo.in_color_space = JCS_EXT_RGBX;
+	jpeg_set_defaults(&cinfo);
+	//jpeg_set_quality(&cinfo, 80, TRUE);
+
+	jpeg_start_compress(&cinfo, TRUE);
+
+
         while (cinfo.next_scanline < cinfo.image_height) {
-            row_pointer[0] = (videoData + (cinfo.next_scanline * row_stride));
+            row_pointer[0] = (videoData + (cinfo.next_scanline * videoLinesize));
 
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
 
         gs_stagesurface_unmap(stagesurf);
+
+	jpeg_finish_compress(&cinfo);
+	jpeg_destroy_compress(&cinfo);
+
+	data_ready = true;
     }
-
-    data_ready = true;
-
-    jpeg_finish_compress(&cinfo);
-    jpeg_destroy_compress(&cinfo);
-
 }
 
 std::string ScreenshotObj::GetData()
 {
     QByteArray ba(reinterpret_cast<char *>(mem), mem_size);
 
-    QString b = ba.toBase64(QByteArray::Base64Encoding);
+    QString b = ba.toBase64();
     std::string buff = b.toStdString();
+
+    free(mem);
 
     return buff;
 }
