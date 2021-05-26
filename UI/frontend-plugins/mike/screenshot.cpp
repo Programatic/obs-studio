@@ -1,6 +1,6 @@
 #include "screenshot.hpp"
 
-#include <jpeglib.h>
+#include "libjpeg/jpeglib.h"
 #include <QBuffer>
 #include <QImageWriter>
 #include <util/base.h>
