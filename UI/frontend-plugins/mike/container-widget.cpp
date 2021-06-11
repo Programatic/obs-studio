@@ -21,7 +21,7 @@
 // Create overall container widget. This widget is the parent that moderates both dashboard and login.
 ContainerWidget::ContainerWidget(QWidget *parent) : QDockWidget(parent)
 {
-	setWindowTitle("Login");
+	setWindowTitle("Studio");
 
 	// Create a cb that gets passed to login widget when it gets created.
 	// This callback will delete the login widget, and create a new dashboard widget on login.
