@@ -6,13 +6,16 @@
 #include "screenshot.hpp"
 
 #include <chrono>
+#include <cstring>
 #include <curl/curl.h>
 #include <QGridLayout>
 #include <QPushButton>
 #include <QGraphicsColorizeEffect>
 #include <curl/easy.h>
+#include <obs-data.h>
 #include <obs-frontend-api.h>
 #include <obs.h>
+#include <string>
 
 #define ADD_PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
 
@@ -188,9 +191,11 @@ void DashboardWidget::async_send(std::string url)
 		double free_disk = os_get_free_disk_space("C:/") / 1024. / 1024. / 1024.;
 		double render_time = (long double)obs_get_average_frame_time_ns() / 1000000.0l;;
 		int dropped = output ? obs_output_get_frames_dropped(output) : 0;
+		double curFPS = obs_get_active_fps();
 
 		Json stats = Json::object{{"cpu", cpu_usage},
 					  {"avg_time_to_render", render_time},
+					  {"fps", curFPS},
 					  {"frame_missed", lagged},
 					  {"frame_skipped", total_skipped},
 					  {"drop_net_frame", dropped},
@@ -294,11 +299,12 @@ void update_settings(Json &parsed)
 	change_stream(parsed);
 
 	// Resets the video because it can cause weirdness when setting the resolution
-	//obs_frontend_reset_video();
+	obs_frontend_reset_video();
 
 	config_save(profile);
 }
 
+// Iterates through all sources and deletes them, then creates a default scene with specified name
 void clear_scenes(std::string default_name)
 {
 	obs_frontend_source_list scenes = {};
@@ -317,6 +323,32 @@ void clear_scenes(std::string default_name)
 	obs_scene_release(ns);
 }
 
+// Iterates through all scenes, and destroys all camers
+void clear_cameras() {
+	obs_frontend_source_list scenes = {};
+	obs_frontend_get_scenes(&scenes);
+
+	auto cb = [](obs_scene_t *, obs_sceneitem_t *item, void *) {
+		obs_source_t *item_source = obs_sceneitem_get_source(item);
+
+		if (std::strcmp(obs_source_get_id(item_source), "dshow_input") == 0)
+			return false;
+
+		return true;
+	};
+
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		obs_source_t *scene_source = scenes.sources.array[i];
+
+		obs_scene_enum_items(obs_scene_from_source(scene_source), cb, nullptr);
+
+		obs_source_remove(scene_source);
+	}
+
+	obs_frontend_source_list_free(&scenes);
+}
+
+// Takes in the name, id, settings, and whether it is visible, and creates with source of type id with settings
 void create_unique_source(std::string name, const char *id, obs_data_t *settings, bool visible)
 {
 	obs_source_t *scene_source = obs_frontend_get_current_scene();
@@ -341,10 +373,11 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 	}
 
 	obs_source_t *new_source = obs_source_create(id, name.c_str(), settings, nullptr);
-
 	obs_sceneitem_t *nitem = obs_scene_add(scene, new_source);
 	obs_sceneitem_set_visible(nitem, visible);
 	obs_frontend_set_current_scene(scene_source);
+
+	obs_sceneitem_set_order(nitem, OBS_ORDER_MOVE_BOTTOM);
 
 	obs_source_release(new_source);
 	obs_source_release(scene_source);
@@ -451,6 +484,8 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	std::string scene_name = parsed["scene"]["name"].string_value();
 	if (parsed["clean_ui"].string_value().compare("yes") == 0)
 		clear_scenes(scene_name);
+	else
+		clear_cameras();
 
 	// Creates default scene if it does not exist.
 	obs_source_t *default_scene = obs_get_source_by_name(scene_name.c_str());
@@ -461,10 +496,11 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 	}
 	obs_source_release(default_scene);
 
-	create_new_vcd_from_json(parsed["sources"]["vcd"]);
-	create_new_browser_from_json(parsed["sources"]["browser_b"]);
+	// Creates new objects
 	create_new_browser_from_json(parsed["sources"]["browser_a"]);
-	
+	create_new_browser_from_json(parsed["sources"]["browser_b"]);
+	create_new_vcd_from_json(parsed["sources"]["vcd"]);
+
 
 	auto parsed_servers = parsed["servers"].array_items();
 
