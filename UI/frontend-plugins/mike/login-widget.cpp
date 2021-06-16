@@ -31,7 +31,7 @@ std::string Login(std::string un, std::string pw)
 	auto e_un = curl_easy_escape(h, un.c_str(), un.size());
 	auto e_pw = curl_easy_escape(h, pw.c_str(), pw.size());
 	std::string url =
-		std::string("https://mdca.co.com/api/obs_login?user=") + e_un +
+		std::string("https://studio.lollipop.red/core/app/obs_login?user=") + e_un +
 		"&pass=" + e_pw;
 	curl_free(e_un);
 	curl_free(e_pw);

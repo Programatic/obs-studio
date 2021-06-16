@@ -16,6 +16,9 @@
 #include <obs-frontend-api.h>
 #include <obs.h>
 #include <string>
+//#include "mfobjects.h"
+//#include "mfidl.h"
+//#include "mfapi.h"
 
 #define ADD_PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
 
@@ -331,18 +334,16 @@ void clear_cameras() {
 	auto cb = [](obs_scene_t *, obs_sceneitem_t *item, void *) {
 		obs_source_t *item_source = obs_sceneitem_get_source(item);
 
-		if (std::strcmp(obs_source_get_id(item_source), "dshow_input") == 0)
-			return false;
+		if (std::strcmp(obs_source_get_id(item_source), "dshow_input") == 0) {}
+			obs_source_remove(item_source);
+
 
 		return true;
 	};
 
 	for (size_t i = 0; i < scenes.sources.num; i++) {
 		obs_source_t *scene_source = scenes.sources.array[i];
-
 		obs_scene_enum_items(obs_scene_from_source(scene_source), cb, nullptr);
-
-		obs_source_remove(scene_source);
 	}
 
 	obs_frontend_source_list_free(&scenes);
@@ -373,6 +374,9 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 	}
 
 	obs_source_t *new_source = obs_source_create(id, name.c_str(), settings, nullptr);
+
+	
+
 	obs_sceneitem_t *nitem = obs_scene_add(scene, new_source);
 	obs_sceneitem_set_visible(nitem, visible);
 	obs_frontend_set_current_scene(scene_source);
@@ -481,6 +485,41 @@ void create_new_vcd_from_json(Json parsed) {
 // 4) It will start a timer that will send a heartbeat to the server every minute.
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
+	//IMFMediaSource *pSource = NULL;
+	//IMFAttributes *pAttributes = NULL;
+	//IMFActivate **ppDevices = NULL;
+
+	//////// Create an attribute store to specify the enumeration parameters.
+	//HRESULT hr = MFCreateAttributes(&pAttributes, 1);
+	//if (FAILED(hr)) {
+	//	blog(LOG_DEBUG, "FAILTURE");
+	//}
+
+
+	//////// Source type: video capture devices
+	//hr = pAttributes->SetGUID(
+	//	MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+	//	MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+	//if (FAILED(hr)) {
+	//	blog(LOG_DEBUG, "FAILTURE 2");
+	//}
+
+	//////// Enumerate devices.
+	//UINT32 count;
+	//hr = MFEnumDeviceSources(pAttributes, &ppDevices, &count);
+	//if (FAILED(hr)) {
+	//	blog(LOG_DEBUG, "FAILTURE 3");
+	//}
+
+
+	//if (count == 0) {
+	//	hr = E_FAIL;
+	//	blog(LOG_DEBUG, "FAILTURE 4");
+	//}
+
+	//blog(LOG_DEBUG, "MIKE: %d", count);
+
+
 	std::string scene_name = parsed["scene"]["name"].string_value();
 	if (parsed["clean_ui"].string_value().compare("yes") == 0)
 		clear_scenes(scene_name);
@@ -494,6 +533,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		obs_frontend_set_current_scene(obs_scene_get_source(ns));
 		obs_scene_release(ns);
 	}
+	obs_frontend_set_current_scene(default_scene);
 	obs_source_release(default_scene);
 
 	// Creates new objects
