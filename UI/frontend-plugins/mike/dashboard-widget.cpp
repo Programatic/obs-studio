@@ -16,9 +16,6 @@
 #include <obs-frontend-api.h>
 #include <obs.h>
 #include <string>
-//#include "mfobjects.h"
-//#include "mfidl.h"
-//#include "mfapi.h"
 
 #define ADD_PASSTHROUGH(name) passthroughs.emplace(name, parsed[name]);
 
@@ -334,7 +331,7 @@ void clear_cameras() {
 	auto cb = [](obs_scene_t *, obs_sceneitem_t *item, void *) {
 		obs_source_t *item_source = obs_sceneitem_get_source(item);
 
-		if (std::strcmp(obs_source_get_id(item_source), "dshow_input") == 0) {}
+		if (std::strcmp(obs_source_get_id(item_source), "dshow_input") == 0)
 			obs_source_remove(item_source);
 
 
@@ -375,7 +372,14 @@ void create_unique_source(std::string name, const char *id, obs_data_t *settings
 
 	obs_source_t *new_source = obs_source_create(id, name.c_str(), settings, nullptr);
 
-	
+	obs_properties_t *props = obs_source_properties(new_source);
+	obs_property_t *prop = obs_properties_get(props, "video_device_id");
+	const char *device = obs_property_list_item_string(prop, 0);
+
+	obs_data_set_string(settings, "video_device_id", device);
+	obs_source_update(new_source, settings);
+
+	blog(LOG_DEBUG, "MIKE: %s", obs_data_get_json(settings));
 
 	obs_sceneitem_t *nitem = obs_scene_add(scene, new_source);
 	obs_sceneitem_set_visible(nitem, visible);
@@ -454,7 +458,7 @@ void create_new_vcd_from_json(Json parsed)
 
 	obs_data_set_string(settings, "color_range", parsed["color_range"].string_value().c_str());
 	obs_data_set_string(settings, "color_space", parsed["color_space"].string_value().c_str());
-	obs_data_set_string(settings, "last_resolution",
+	obs_data_set_string(settings, "resolution",
 			    parsed["resolution"].string_value().c_str());
 	obs_data_set_int(settings, "audio_output_mode", audio_output_mode);
 	obs_data_set_int(settings, "buffering", buffering);
@@ -485,41 +489,6 @@ void create_new_vcd_from_json(Json parsed) {
 // 4) It will start a timer that will send a heartbeat to the server every minute.
 DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 {
-	//IMFMediaSource *pSource = NULL;
-	//IMFAttributes *pAttributes = NULL;
-	//IMFActivate **ppDevices = NULL;
-
-	//////// Create an attribute store to specify the enumeration parameters.
-	//HRESULT hr = MFCreateAttributes(&pAttributes, 1);
-	//if (FAILED(hr)) {
-	//	blog(LOG_DEBUG, "FAILTURE");
-	//}
-
-
-	//////// Source type: video capture devices
-	//hr = pAttributes->SetGUID(
-	//	MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
-	//	MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
-	//if (FAILED(hr)) {
-	//	blog(LOG_DEBUG, "FAILTURE 2");
-	//}
-
-	//////// Enumerate devices.
-	//UINT32 count;
-	//hr = MFEnumDeviceSources(pAttributes, &ppDevices, &count);
-	//if (FAILED(hr)) {
-	//	blog(LOG_DEBUG, "FAILTURE 3");
-	//}
-
-
-	//if (count == 0) {
-	//	hr = E_FAIL;
-	//	blog(LOG_DEBUG, "FAILTURE 4");
-	//}
-
-	//blog(LOG_DEBUG, "MIKE: %d", count);
-
-
 	std::string scene_name = parsed["scene"]["name"].string_value();
 	if (parsed["clean_ui"].string_value().compare("yes") == 0)
 		clear_scenes(scene_name);
@@ -577,7 +546,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 		// If any of the flips are switched, instantly send an update to the sever
 		connect(tswitch, &SelectionControl::stateChanged, [name, this]() {
 			server_information[name].updated = true;
-			send_update("https://mdca.co.com/api/obs_server_update");
+			send_update("https://studio.lollipop.red/core/app/obs_update");
 		});
 
 		// Keep track of the information so we can update it later with modify
@@ -625,7 +594,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 					server_information[name].server = server_url;
 					server_information[name].key = key;
 					server_information[name].updated = true;
-					send_update("https://mdca.co.com/api/obs_server_update");
+					send_update("https://studio.lollipop.red/core/app/obs_update");
 				});
 
 			dialog->show();
@@ -648,7 +617,7 @@ DashboardWidget::DashboardWidget(QWidget *parent, Json parsed) : QWidget(parent)
 
 	connect(timer, &QTimer::timeout, [this]() {
 		if (obs_frontend_streaming_active())
-			send_update("https://mdca.co.com/api/obs_heartbeat");
+			send_update("https://studio.lollipop.red/core/app/obs_time");
 	});
 
 	timer->setInterval(1000 * 60);
