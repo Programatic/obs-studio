@@ -111,6 +111,14 @@ jobs:
         run: |
           curl -kL https://cdn-fastly.obsproject.com/downloads/cef_binary_${{ env.CEF_VERSION }}_windows64_minimal.zip -f --retry 5 -o cef.zip
           7z x cef.zip -o"${{ github.workspace }}/cmbuild"
+      - name: 'Configure Jpeg-Turbo'
+        run: |
+          cd ./UI/frontend-plugins/mike/libjpeg-turbo
+          mkdir ./build_turbo
+          cd ./build_turbo
+          cmake -G"${{ env.CMAKE_GENERATOR }}" ..
+          cp jconfig.h ..
+          cp jconfigint.h ..
       - name: 'Configure'
         run: |
           mkdir ./build
