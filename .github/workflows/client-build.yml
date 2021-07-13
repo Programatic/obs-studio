@@ -116,7 +116,7 @@ jobs:
           cd ./UI/frontend-plugins/mike/libjpeg-turbo
           mkdir ./build_turbo
           cd ./build_turbo
-          cmake -G"${{ env.CMAKE_GENERATOR }}" -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          cmake -G"${{ env.CMAKE_GENERATOR }}" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="./pls_build" ..
           cp jconfig.h ..
           cp jconfigint.h ..
       - name: 'Configure'
